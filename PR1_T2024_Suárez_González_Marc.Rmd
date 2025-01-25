@@ -1,0 +1,175 @@
+---
+title: "Álgebra Lineal. Reto 4 - PR1_T2024"
+author: "Marc Suárez González"
+date: "27 de diciembre de 2024"
+output: 
+  pdf_document:
+    number_sections: true 
+    toc: true           
+    toc_depth: 2
+    df_print: paged
+    fig_caption: true
+    highlight: kate
+    latex_engine: xelatex
+---
+
+# Pregunta 0: Tabla resumen de la Práctica 1
+
+Los resultados del informe corresponden al primer intento.
+
+```
+Valor de T = 1
+Valor de E = 70
+```
+
+# Pregunta 1
+
+```{r, setup, include=FALSE}
+data_df <- read.csv("/Users/royalsugo/Library/Mobile Documents/com~apple~CloudDocs/UOC/2d-Semestre/Álgebra Lineal/PR1/PR1_T2024_data/data_0608.csv")
+```
+
+```{r}
+y <- data_df[, 1]
+X <- data.matrix(data_df[, -1])
+
+# Dimensión matriz X
+dim_X <- dim(X)
+print(dim_X)
+```
+
+# Pregunta 2
+
+```{r}
+# Únicamente días lluviosos (1)
+T <- 1
+dias_T <- which(y == T)
+```
+
+```{r}
+# Cálcul temperatura media días lluviosos
+temperaturas_T <- X[dias_T, 1]
+temperatura_media <- mean(temperaturas_T)
+```
+
+```{r, echo=FALSE}
+print(paste("Número de días con tiempo T (lluviosos):", length(dias_T)))
+print(paste("Temperatura media de los días lluviosos:", temperatura_media))
+```
+
+# Pregunta 3
+
+```{r}
+# Media aritmética
+m_X <- colMeans(X)
+
+# Desviación típica
+s_X <- apply(X, 2, sd)
+
+# Matriz de datos normalizada período 2006-2008
+Xs <- scale(X, center = m_X, scale = s_X)
+# print(Xs)
+
+# Temperatura media matriz normalizada
+temperatura_media_Xs <- mean(Xs[, "temperature"])
+```
+```{r, echo=FALSE}
+print(paste("Temperatura media período 2006-2008 en datos normalizados:", temperatura_media_Xs))
+```
+
+# Pregunta 4
+
+```{r}
+CXs <- cov(Xs)
+print(CXs)
+
+library(fields)
+# Representación CXs
+image.plot(CXs, main = "Matriz de Covarianza (CXs)", xlab = "X", ylab = "Y")
+```
+
+En la columna **visibility** se presenta un valor absoluto de **'0.44983063'** mostrando una covarianza más alta en la fila **humidity**, por lo tanto es la que mayor relación tendrá.
+Por el contrario, en la misma columna, se presenta un valor absoluto de **'0.02532882'** en la fila de **atm_press** y será la que menos relación tenga.
+
+
+# Pregunta 5
+
+```{r}
+# Descomponer en vlores propios
+componentes_principales <- eigen(CXs)
+
+# Extraerlos
+componentes <- componentes_principales$values
+
+varianza_explicada <- componentes / sum(componentes)
+
+varianza_acumulada <- cumsum(varianza_explicada)
+
+plot(varianza_acumulada, type = "b", pch = 19, col = "blue",
+     xlab = "Componentes principales", ylab = "Varianza acumulada",
+     main = "Distribución de la varianza acumulada")
+abline(h = 0.7, col = "red", lty = 2)
+
+# Mínimo de componentes principales para explicar 'E' (70%)
+P <- which(varianza_acumulada >= 0.70)[1]
+```
+```{r, echo=FALSE}
+print(paste("Mínimo de componentes principales para explicar 'E' (70%): ", P))
+```
+
+# Pregunta 6
+
+```{r, echo=FALSE}
+data_df_segundo_periodo <- read.csv("/Users/royalsugo/Library/Mobile Documents/com~apple~CloudDocs/UOC/2d-Semestre/Álgebra Lineal/PR1/PR1_T2024_data/data_0911.csv")
+```
+
+```{r}
+y_segundo_periodo <- data_df_segundo_periodo[, 1]
+X_segundo_periodo <- data.matrix(data_df_segundo_periodo[, -1])
+
+# Matriz de datos normalizada período 2009-2011 con la media y desviación típica de 2006-2008 
+
+Xs_test <- scale(X_segundo_periodo, center = m_X, scale = s_X)
+# print(Xs_test)
+
+dias_T_segundo_periodo <- which(y_segundo_periodo == T)
+```
+```{r, echo=FALSE}
+print(paste("Número de días con tiempo T (lluviosos) en el periodo 2009-2011:", length(dias_T_segundo_periodo)))
+```
+
+# Pregunta 7
+
+```{r}
+# Extraer vectores propios de las tres primeras componentes principales
+vectores_propios <- componentes_principales$vectors[, 1:3]
+
+# Proyección datos normalizados
+Xproj_test <- Xs_test %*% vectores_propios
+# print(Xproj_test)
+
+varianza_explicada_3comp <- sum(componentes[1:3]) / sum(componentes)
+```
+```{r, echo=FALSE}
+print(paste0("Proporción de varianza explicada por las 3 primeras componentes:", varianza_explicada_3comp * 100, "%"))
+```
+Se determina que la proporción es **mayor** puesto que las tres primeras componentes principales explican más varianza.
+
+# Pregunta 8
+
+```{r}
+# Reconstruir datos originales
+X_reconstruccion <- Xproj_test %*% t(vectores_propios)
+
+# Error residual
+error_residual <- Xs_test - X_reconstruccion
+
+# Desviación típica
+error_temperatura <- error_residual[, "temperature"]
+desviacion_error <- sd(error_temperatura)
+```
+```{r, echo=FALSE}
+print(paste("Desviación típica del error de reconstrucción de la temperatura: ", desviacion_error))
+```
+En este caso, resulta evidente que una distribución estacionaria es razonable puesto que el valor de la desviación es pequeño (0.36) en relación con la escala de los datos normalizados. Los datos del segundo período 2009-2011 están correctamente representados en el subespacio definido por los datos del primer período 2006-2008.
+Podemos asegurar pues que, los resultados estadísticos de los datos no han cambiado de forma significativa entre los períodos 2006-2008 y 2009-2011.
+
